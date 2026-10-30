@@ -29,7 +29,9 @@ npx skills add ZHI00/dsh-coding-principles --skill coding-principles
 - 启用或停用由安装插件的 profile 管理；其他 profile 需要单独安装。
 - 修改 `principles.md` 可调整插件规则，重新加载插件或重启 Harness 后生效；Skill 有独立副本，修改规则时也需同步更新 `skills/coding-principles/SKILL.md` 并运行测试。
 - 插件在 `systemPrompt` 中注册一个独立段落，不替换原有系统提示词。项目约定、用户要求以及必要的安全和数据一致性要求仍然适用。
-- 在输入框中执行 `/coding-principles` 可查看插件状态、累计注入次数和最近一次注入时间。统计文件是 `~/.dsh/storages/coding-principles.json`，每次组装模型请求时计数加一；它只能证明规则被下发，不能证明模型遵守了规则。
+- 在插件管理页打开本插件的详情页，底部会显示「生效统计」面板：累计注入次数和最近一次注入时间。宿主通过 `GET /dsh-coding-principles/stats` 提供数据，面板只读取，不修改统计。
+- 也可以在输入框中执行 `/coding-principles` 查看同样的信息。统计文件是 `~/.dsh/storages/coding-principles.json`，每次组装模型请求时计数加一；它只能证明规则被下发，不能证明模型遵守了规则。
+- 更新插件代码（包括 `client.js`）后需要重启 Harness 才会加载新模块；只重新安装或重载 profile 不会刷新模块缓存。
 - 自然语言规则不能保证模型每次都遵循，代码仍需审查和测试。
 
 ## 测试

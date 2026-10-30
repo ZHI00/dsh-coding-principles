@@ -50,4 +50,34 @@ export function apply(ctx) {
       }
     });
   });
+
+  ctx.inject?.(['webServer'], (scope) => {
+    scope.effect(
+      () =>
+        scope.webServer.register({
+          kind: 'exact',
+          path: '/dsh-coding-principles/stats',
+          handler(request, response) {
+            if (request.method !== 'GET') {
+              response.writeHead(405, { allow: 'GET' });
+              response.end();
+              return;
+            }
+            const current = readStats();
+            response.writeHead(200, {
+              'content-type': 'application/json; charset=utf-8',
+              'cache-control': 'no-store'
+            });
+            response.end(
+              JSON.stringify({
+                injections: current.injections,
+                lastInjectedAt: current.lastInjectedAt,
+                rulesChars: principles.length
+              })
+            );
+          }
+        }),
+      'coding-principles: stats route'
+    );
+  });
 }
