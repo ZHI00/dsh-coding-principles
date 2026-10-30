@@ -1,0 +1,21 @@
+{
+  "name": "dsh-coding-principles",
+  "version": "1.0.0",
+  "description": "Global coding principles against over-defensive programming and overdesign",
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test test.js"
+  },
+  "type": "module",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js",
+    "./package.json": "./package.json"
+  },
+  "files": ["index.js", "principles.md", "cordis.patch.yml", "README.md", "skills"],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}
