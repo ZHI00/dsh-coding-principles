@@ -8,12 +8,18 @@ import { apply, inject, name } from './index.js';
 
 process.env.DSH_HOME = mkdtempSync(join(tmpdir(), 'dsh-coding-principles-'));
 
-test('registers the complete coding principles, counts injections and serves stats', () => {
+test('registers the complete coding principles, counts injections and serves stats', async () => {
   let section;
+  let assemble;
   const commands = [];
   const routes = [];
   apply({
     systemPrompt: { section(value) { section = value; } },
+    on(event, callback, options) {
+      assert.equal(event, 'system-prompt/assemble');
+      assert.deepEqual(options, { global: true });
+      assemble = callback;
+    },
     inject(services, callback) {
       if (services.includes('webServer')) {
         callback({
@@ -32,15 +38,24 @@ test('registers the complete coding principles, counts injections and serves sta
   assert.equal(section.name, 'coding-principles:avoid-overdefense');
   assert.equal(section.order, 100);
 
-  const first = section.text();
-  const second = section.text();
+  const run = async (model, initialModel) => {
+    const input = { sections: [{ name: section.name, text: section.text }], variables: model === undefined ? {} : { model } };
+    return assemble(input, { agent: { options: { model: initialModel } } }, async () => input);
+  };
+  const first = (await run('gpt-6.1-terra')).sections[0].text;
+  const second = (await run('openai/GPT-5', 'claude-sonnet')).sections[0].text;
   assert.match(first, /仅适用于软件开发任务/);
   assert.ok(first.endsWith(principles));
   assert.equal(second, first);
+  for (const model of ['deepseek-v4', 'claude-sonnet', 'not-gpt-5', 'openai/gptish', 'gpt-5/other', '']) {
+    assert.equal((await run(model, 'gpt-5')).sections[0].text, '');
+  }
+  assert.equal((await run(undefined, 'gpt-5')).sections[0].text, first);
+  assert.equal((await run(undefined, undefined)).sections[0].text, '');
   assert.equal(commands.length, 1);
   assert.equal(commands[0].name, 'coding-principles');
   const report = commands[0].handler().text;
-  assert.match(report, /累计注入：2 次/);
+  assert.match(report, /累计注入：3 次/);
 
   assert.equal(routes.length, 1);
   assert.equal(routes[0].kind, 'exact');
@@ -48,7 +63,7 @@ test('registers the complete coding principles, counts injections and serves sta
   let body;
   routes[0].handler({ method: 'GET' }, { writeHead() {}, end(text) { body = text; } });
   const stats = JSON.parse(body);
-  assert.equal(stats.injections, 2);
+  assert.equal(stats.injections, 3);
   assert.equal(typeof stats.lastInjectedAt, 'string');
 });
 

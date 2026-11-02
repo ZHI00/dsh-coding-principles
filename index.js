@@ -24,14 +24,25 @@ export function apply(ctx) {
   ctx.systemPrompt.section({
     name: 'coding-principles:avoid-overdefense',
     order: 100,
-    text() {
-      stats.injections += 1;
-      stats.lastInjectedAt = new Date().toISOString();
-      mkdirSync(dirname(getStateFile()), { recursive: true });
-      writeFileSync(getStateFile(), JSON.stringify(stats));
-      return `以下原则仅适用于软件开发任务，应结合具体项目和用户的要求执行；不得忽略必要的安全、数据一致性保障或更高优先级指令。\n\n${principles}`;
-    }
+    text: ''
   });
+
+  ctx.on('system-prompt/assemble', async (_assembly, context, next) => {
+    const assembly = await next();
+    const model = assembly.variables.model ?? context.agent?.options?.model;
+    if (typeof model !== 'string' || !/(?:^|\/)gpt(?:-[^/]*|)$/i.test(model)) return assembly;
+
+    stats.injections += 1;
+    stats.lastInjectedAt = new Date().toISOString();
+    mkdirSync(dirname(getStateFile()), { recursive: true });
+    writeFileSync(getStateFile(), JSON.stringify(stats));
+    return {
+      ...assembly,
+      sections: assembly.sections.map((section) => section.name === 'coding-principles:avoid-overdefense'
+        ? { ...section, text: `以下原则仅适用于软件开发任务，应结合具体项目和用户的要求执行；不得忽略必要的安全、数据一致性保障或更高优先级指令。\n\n${principles}` }
+        : section)
+    };
+  }, { global: true });
 
   ctx.inject?.(['commands'], (scope) => {
     scope.commands.register({
